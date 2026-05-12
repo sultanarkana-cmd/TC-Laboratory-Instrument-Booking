@@ -601,47 +601,114 @@
     <p class="footer">TC Lab Instrument Booking Portal · Prototype using local storage · Ready to connect with Firebase</p>
   </main>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDocs,
+      setDoc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAVcLfJfO_Rzx-9buPu2oEOAVJrdHXL0wg",
+      authDomain: "tc-lab-instrument-booking.firebaseapp.com",
+      projectId: "tc-lab-instrument-booking",
+      storageBucket: "tc-lab-instrument-booking.firebasestorage.app",
+      messagingSenderId: "808800328042",
+      appId: "1:808800328042:web:b1222f837685c197baad13",
+      measurementId: "G-J5SFPBJBPE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const defaultInstruments = [
-      { id: "big_oven_lab_504", name: "Big Oven", location: "Lab 504", category: "Heating / Drying", icon: "♨️", maxBookingDays: 7, maxBookingHours: 168, labNote: "Suitable for drying samples and thermal conditioning." },
-      { id: "freeze_dryer", name: "Freeze Dryer", location: "Laboratory", category: "Drying / Lyophilization", icon: "❄️", maxBookingDays: 7, maxBookingHours: 168, labNote: "For moisture-sensitive samples and freeze-drying workflow." },
-      { id: "oven_furnace_room", name: "Oven", location: "Furnace Room", category: "Heating / Drying", icon: "🔥", maxBookingDays: 7, maxBookingHours: 168, labNote: "For routine drying and temperature-controlled treatment." },
-      { id: "small_furnace", name: "Small Furnace", location: "Furnace Room", category: "Thermal Treatment", icon: "🧱", maxBookingDays: 7, maxBookingHours: 168, labNote: "For small-batch heat treatment and calcination trials." },
-      { id: "big_calcining_furnace", name: "Big Calcining Furnace", location: "Furnace Room", category: "Calcination / Thermal Treatment", icon: "🏭", maxBookingDays: 7, maxBookingHours: 168, labNote: "For larger calcination batches. Please specify target temperature." },
-      { id: "curing_oven", name: "Curing Oven", location: "Laboratory", category: "Curing / Thermal Processing", icon: "🌡️", maxBookingDays: 7, maxBookingHours: 168, labNote: "For curing specimens under controlled thermal conditions." },
-      { id: "battery_tester", name: "Battery Tester", location: "Battery Testing Area", category: "Electrochemical Testing", icon: "🔋", maxBookingDays: 30, maxBookingHours: 720, labNote: "Extended booking allowed for cycling tests. Maximum 30 days." },
-      { id: "probe_sonicator", name: "Probe Sonicator", location: "Laboratory", category: "Dispersion / Sonication", icon: "〰️", maxBookingDays: 7, maxBookingHours: 168, labNote: "For high-energy dispersion. Please record amplitude and duration." },
-      { id: "bath_ultrasonicator", name: "Bath Ultrasonicator", location: "Laboratory", category: "Dispersion / Cleaning / Sonication", icon: "💧", maxBookingDays: 7, maxBookingHours: 168, labNote: "For bath sonication, mild dispersion, and cleaning support." }
+      { id: "big_oven_lab_504", name: "Big Oven", location: "Lab 504", category: "Heating / Drying", icon: "♨️", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "Suitable for drying samples and thermal conditioning." },
+      { id: "freeze_dryer", name: "Freeze Dryer", location: "Laboratory", category: "Drying / Lyophilization", icon: "❄️", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "For moisture-sensitive samples and freeze-drying workflow." },
+      { id: "oven_furnace_room", name: "Oven", location: "Furnace Room", category: "Heating / Drying", icon: "🔥", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "For routine drying and temperature-controlled treatment." },
+      { id: "small_furnace", name: "Small Furnace", location: "Furnace Room", category: "Thermal Treatment", icon: "🧱", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "For small-batch heat treatment and calcination trials." },
+      { id: "big_calcining_furnace", name: "Big Calcining Furnace", location: "Furnace Room", category: "Calcination / Thermal Treatment", icon: "🏭", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "For larger calcination batches. Please specify target temperature." },
+      { id: "curing_oven", name: "Curing Oven", location: "Laboratory", category: "Curing / Thermal Processing", icon: "🌡️", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "For curing specimens under controlled thermal conditions." },
+      { id: "battery_tester", name: "Battery Tester", location: "Battery Testing Area", category: "Electrochemical Testing", icon: "🔋", imageUrl: "", maxBookingDays: 30, maxBookingHours: 720, labNote: "Extended booking allowed for cycling tests. Maximum 30 days." },
+      { id: "probe_sonicator", name: "Probe Sonicator", location: "Laboratory", category: "Dispersion / Sonication", icon: "〰️", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "For high-energy dispersion. Please record amplitude and duration." },
+      { id: "bath_ultrasonicator", name: "Bath Ultrasonicator", location: "Laboratory", category: "Dispersion / Cleaning / Sonication", icon: "💧", imageUrl: "", maxBookingDays: 7, maxBookingHours: 168, labNote: "For bath sonication, mild dispersion, and cleaning support." }
     ];
 
     const defaultUsers = [
-      { id: "user_admin", fullName: "TC Administrator", username: "admin", password: "admin123", role: "admin", createdAt: new Date().toISOString() },
-      { id: "user_sulthan", fullName: "Muhammad Sulthan Arkana", username: "Sulthan", password: "1234", role: "user", createdAt: new Date().toISOString() }
+      { id: "user_admin", fullName: "TC Administrator", username: "admin", password: "admin123", role: "admin" },
+      { id: "user_sulthan", fullName: "Muhammad Sulthan Arkana", username: "Sulthan", password: "1234", role: "user" }
     ];
 
-    let users = JSON.parse(localStorage.getItem("tcLabUsers")) || defaultUsers;
-    let bookings = JSON.parse(localStorage.getItem("tcLabBookings")) || [];
-    let instruments = JSON.parse(localStorage.getItem("tcLabInstruments")) || defaultInstruments;
+    let users = [];
+    let instruments = [];
+    let bookings = [];
     let currentUser = JSON.parse(sessionStorage.getItem("tcCurrentUser")) || null;
+    let isBootstrapped = false;
 
     const $ = (id) => document.getElementById(id);
-
-    function persistUsers() { localStorage.setItem("tcLabUsers", JSON.stringify(users)); }
-    function persistBookings() { localStorage.setItem("tcLabBookings", JSON.stringify(bookings)); }
-    function persistInstruments() { localStorage.setItem("tcLabInstruments", JSON.stringify(instruments)); }
 
     function showNotice(elementId, type, message) {
       const box = $(elementId);
       box.className = `notice show ${type}`;
       box.textContent = message;
     }
+
     function clearNotice(elementId) {
       const box = $(elementId);
       box.className = "notice";
       box.textContent = "";
     }
 
-    function login(event) {
+    async function seedInitialDataIfNeeded() {
+      const userSnap = await getDocs(collection(db, "users"));
+      if (userSnap.empty) {
+        for (const user of defaultUsers) {
+          await setDoc(doc(db, "users", user.id), {
+            ...user,
+            createdAt: serverTimestamp()
+          });
+        }
+      }
+
+      const instrumentSnap = await getDocs(collection(db, "instruments"));
+      if (instrumentSnap.empty) {
+        for (const instrument of defaultInstruments) {
+          await setDoc(doc(db, "instruments", instrument.id), {
+            ...instrument,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+      }
+    }
+
+    function subscribeToFirestore() {
+      onSnapshot(collection(db, "users"), (snapshot) => {
+        users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (currentUser) renderAll();
+      });
+
+      onSnapshot(collection(db, "instruments"), (snapshot) => {
+        instruments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        if (currentUser) renderAll();
+      });
+
+      onSnapshot(collection(db, "bookings"), (snapshot) => {
+        bookings = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => String(b.createdAtText || "").localeCompare(String(a.createdAtText || "")));
+        if (currentUser) renderAll();
+      });
+    }
+
+    async function login(event) {
       event.preventDefault();
       const username = $("loginUsername").value.trim();
       const password = $("loginPassword").value.trim();
@@ -652,7 +719,13 @@
         return;
       }
 
-      currentUser = { id: user.id, fullName: user.fullName, username: user.username, role: user.role };
+      currentUser = {
+        id: user.id,
+        fullName: user.fullName,
+        username: user.username,
+        role: user.role
+      };
+
       sessionStorage.setItem("tcCurrentUser", JSON.stringify(currentUser));
       openApp();
     }
@@ -693,7 +766,13 @@
 
     function formatDateTime(value) {
       if (!value) return "—";
-      return new Date(value).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      return new Date(value).toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
     }
 
     function calculateDuration(startValue, endValue) {
@@ -717,7 +796,13 @@
     }
 
     function renderInstruments() {
-      $("instrumentGrid").innerHTML = instruments.map(instrument => `
+      const grid = $("instrumentGrid");
+      if (!instruments.length) {
+        grid.innerHTML = `<div class="empty">No instruments found. Admin can add instruments in the admin panel.</div>`;
+        return;
+      }
+
+      grid.innerHTML = instruments.map(instrument => `
         <article class="instrument-card card">
           <div class="instrument-top">
             ${instrumentVisual(instrument)}
@@ -730,15 +815,27 @@
             <div><strong>Maximum:</strong> ${instrument.maxBookingDays} days / ${instrument.maxBookingHours} hours</div>
           </div>
           <button class="btn btn-primary" onclick="selectInstrumentAndBook('${instrument.id}')">Book Instrument</button>
-          <div class="lab-note">${instrument.labNote}</div>
+          <div class="lab-note">${instrument.labNote || "Please follow laboratory safety and booking instructions."}</div>
         </article>
       `).join("");
     }
 
     function renderInstrumentOptions() {
-      $("instrumentSelect").innerHTML = instruments.map(i => `
+      const select = $("instrumentSelect");
+      if (!instruments.length) {
+        select.innerHTML = `<option value="">No instruments available</option>`;
+        return;
+      }
+
+      const currentValue = select.value;
+      select.innerHTML = instruments.map(i => `
         <option value="${i.id}">${i.name} — ${i.location} — max ${i.maxBookingDays} days / ${i.maxBookingHours} hours</option>
       `).join("");
+
+      if (currentValue && instruments.some(i => i.id === currentValue)) {
+        select.value = currentValue;
+      }
+
       updateDurationPreview();
     }
 
@@ -751,6 +848,7 @@
     function updateDurationPreview() {
       const instrument = getSelectedInstrument();
       if (!instrument) return;
+
       const duration = calculateDuration($("startDateTime").value, $("endDateTime").value);
       $("maxAllowed").textContent = `${instrument.maxBookingDays} days / ${instrument.maxBookingHours} hours`;
 
@@ -767,7 +865,7 @@
       if (duration.hours > instrument.maxBookingHours) {
         showNotice("bookingNotice", "error", `${instrument.name} can be booked for a maximum of ${instrument.maxBookingDays} days / ${instrument.maxBookingHours} hours.`);
       } else {
-        showNotice("bookingNotice", "ok", `Valid booking duration: ${duration.hours.toFixed(1)} hours / ${duration.days.toFixed(2)} days.`);
+        showNotice("bookingNotice", "ok", `Valid booking duration: ${duration.hours.toFixed(1)} hours / ${duration.days.toFixed(2)} days. This booking will be confirmed immediately.`);
       }
     }
 
@@ -779,26 +877,32 @@
       });
     }
 
-    function submitBooking(event) {
+    async function submitBooking(event) {
       event.preventDefault();
       const instrument = getSelectedInstrument();
       const duration = calculateDuration($("startDateTime").value, $("endDateTime").value);
+
+      if (!instrument) {
+        showNotice("bookingNotice", "error", "Please select an instrument.");
+        return;
+      }
 
       if (!duration) {
         showNotice("bookingNotice", "error", "End date/time must be later than start date/time.");
         return;
       }
+
       if (duration.hours > instrument.maxBookingHours) {
         showNotice("bookingNotice", "error", `${instrument.name} can be booked for a maximum of ${instrument.maxBookingDays} days / ${instrument.maxBookingHours} hours.`);
         return;
       }
+
       if ($("safetyConfirm").value !== "confirmed") {
         showNotice("bookingNotice", "error", "Please confirm training/supervision and sample compatibility.");
         return;
       }
 
       const booking = {
-        id: `booking_${Date.now()}`,
         instrumentId: instrument.id,
         instrumentName: instrument.name,
         location: instrument.location,
@@ -814,7 +918,8 @@
         purpose: $("purpose").value.trim(),
         safetyConfirm: true,
         status: "confirmed",
-        createdAt: new Date().toISOString()
+        createdAt: serverTimestamp(),
+        createdAtText: new Date().toISOString()
       };
 
       if (hasOverlap(booking)) {
@@ -822,23 +927,29 @@
         return;
       }
 
-      bookings.unshift(booking);
-      persistBookings();
+      await addDoc(collection(db, "bookings"), booking);
+
       $("bookingForm").reset();
-      showNotice("bookingNotice", "ok", "Booking confirmed successfully.");
       $("requesterName").value = currentUser.fullName;
       $("requesterUsername").value = currentUser.username;
-      renderAll();
+      showNotice("bookingNotice", "ok", "Booking confirmed successfully.");
       showSection("mybookings");
     }
 
     function bookingTable(data, adminMode = false) {
-      if (data.length === 0) return `<div class="empty">No booking records found.</div>`;
+      if (!data.length) return `<div class="empty">No booking records found.</div>`;
+
       return `
         <table>
           <thead>
             <tr>
-              <th>Instrument</th><th>User</th><th>Schedule</th><th>Duration</th><th>Sample / Condition</th><th>Status</th>${adminMode ? "<th>Action</th>" : ""}
+              <th>Instrument</th>
+              <th>User</th>
+              <th>Schedule</th>
+              <th>Duration</th>
+              <th>Sample / Condition</th>
+              <th>Status</th>
+              ${adminMode ? "<th>Action</th>" : ""}
             </tr>
           </thead>
           <tbody>
@@ -847,8 +958,8 @@
                 <td><strong>${b.instrumentName}</strong><br><span style="color:var(--muted);">${b.location}</span></td>
                 <td>${b.userName}<br><span style="color:var(--muted);">@${b.username}</span></td>
                 <td>${formatDateTime(b.startDateTime)}<br>→ ${formatDateTime(b.endDateTime)}</td>
-                <td>${b.durationHours.toFixed(1)} h<br>${b.durationDays.toFixed(2)} d</td>
-                <td>${b.sampleMaterial}<br><span style="color:var(--muted);">${b.condition || "No condition stated"}</span></td>
+                <td>${Number(b.durationHours).toFixed(1)} h<br>${Number(b.durationDays).toFixed(2)} d</td>
+                <td>${b.sampleMaterial || "Not specified"}<br><span style="color:var(--muted);">${b.condition || "No condition stated"}</span></td>
                 <td><span class="status ${b.status}">${b.status}</span></td>
                 ${adminMode ? `<td><div class="btn-row"><button class="btn btn-red" onclick="updateBookingStatus('${b.id}','cancelled')">Cancel Booking</button></div></td>` : ""}
               </tr>
@@ -859,19 +970,22 @@
     }
 
     function renderBookings() {
+      if (!currentUser) return;
       const myData = bookings.filter(b => b.userId === currentUser.id);
-      const adminData = bookings;
       $("myBookingList").innerHTML = bookingTable(myData, false);
-      $("adminBookingList").innerHTML = bookingTable(adminData, true);
+      $("adminBookingList").innerHTML = bookingTable(bookings, true);
     }
 
-    function updateBookingStatus(id, status) {
-      bookings = bookings.map(b => b.id === id ? { ...b, status, reviewedBy: currentUser.fullName, reviewedAt: new Date().toISOString() } : b);
-      persistBookings();
-      renderAll();
+    async function updateBookingStatus(id, status) {
+      await updateDoc(doc(db, "bookings", id), {
+        status,
+        reviewedBy: currentUser.fullName,
+        reviewedAt: serverTimestamp(),
+        reviewedAtText: new Date().toISOString()
+      });
     }
 
-    function createUser(event) {
+    async function createUser(event) {
       event.preventDefault();
       const fullName = $("newFullName").value.trim();
       const username = $("newUsername").value.trim();
@@ -883,21 +997,35 @@
         return;
       }
 
-      users.push({ id: `user_${Date.now()}`, fullName, username, password, role, createdAt: new Date().toISOString() });
-      persistUsers();
+      const newUserRef = doc(collection(db, "users"));
+      await setDoc(newUserRef, {
+        fullName,
+        username,
+        password,
+        role,
+        createdAt: serverTimestamp(),
+        createdAtText: new Date().toISOString()
+      });
+
       $("createUserForm").reset();
       showNotice("userNotice", "ok", `Account created for ${fullName}. Username: ${username}`);
-      renderAll();
     }
 
-    function deleteUser(id) {
+    async function deleteUser(id) {
       if (id === currentUser.id) {
         alert("You cannot delete the account you are currently using.");
         return;
       }
-      users = users.filter(u => u.id !== id);
-      persistUsers();
-      renderAll();
+      await deleteDoc(doc(db, "users", id));
+    }
+
+    function renderUsers() {
+      $("userList").innerHTML = users.map(u => `
+        <div class="user-item">
+          <div><strong>${u.fullName}</strong><small>@${u.username} · ${u.role}</small></div>
+          <button class="btn btn-amber" onclick="deleteUser('${u.id}')">Remove</button>
+        </div>
+      `).join("");
     }
 
     function makeInstrumentId(name) {
@@ -917,7 +1045,7 @@
       clearNotice("instrumentNotice");
     }
 
-    function saveInstrument(event) {
+    async function saveInstrument(event) {
       event.preventDefault();
       const editId = $("editInstrumentId").value;
       const name = $("instrumentNameInput").value.trim();
@@ -933,8 +1061,8 @@
         return;
       }
 
+      const id = editId || makeInstrumentId(name);
       const data = {
-        id: editId || makeInstrumentId(name),
         name,
         location,
         category,
@@ -942,31 +1070,40 @@
         imageUrl,
         maxBookingDays,
         maxBookingHours: maxBookingDays * 24,
-        labNote: labNote || "Please follow laboratory safety and booking instructions."
+        labNote: labNote || "Please follow laboratory safety and booking instructions.",
+        updatedAt: serverTimestamp(),
+        updatedAtText: new Date().toISOString()
       };
 
       if (editId) {
-        instruments = instruments.map(item => item.id === editId ? data : item);
-        bookings = bookings.map(booking => booking.instrumentId === editId ? {
-          ...booking,
-          instrumentName: data.name,
-          location: data.location
-        } : booking);
-        persistBookings();
+        await updateDoc(doc(db, "instruments", id), data);
+
+        const affectedBookings = bookings.filter(booking => booking.instrumentId === id);
+        for (const booking of affectedBookings) {
+          await updateDoc(doc(db, "bookings", booking.id), {
+            instrumentName: name,
+            location
+          });
+        }
+
         showNotice("instrumentNotice", "ok", `${name} has been updated.`);
       } else {
-        instruments.push(data);
+        await setDoc(doc(db, "instruments", id), {
+          id,
+          ...data,
+          createdAt: serverTimestamp(),
+          createdAtText: new Date().toISOString()
+        });
         showNotice("instrumentNotice", "ok", `${name} has been added.`);
       }
 
-      persistInstruments();
       resetInstrumentForm();
-      renderAll();
     }
 
     function editInstrument(id) {
       const instrument = instruments.find(item => item.id === id);
       if (!instrument) return;
+
       $("editInstrumentId").value = instrument.id;
       $("instrumentNameInput").value = instrument.name;
       $("instrumentLocationInput").value = instrument.location;
@@ -979,19 +1116,23 @@
       showNotice("instrumentNotice", "warn", `Editing ${instrument.name}. Save to update the instrument database.`);
     }
 
-    function deleteInstrument(id) {
+    async function deleteInstrument(id) {
       const hasBookings = bookings.some(booking => booking.instrumentId === id && booking.status !== "cancelled");
       if (hasBookings) {
         alert("This instrument has active booking records. Cancel or clear those bookings before removing it.");
         return;
       }
-      instruments = instruments.filter(item => item.id !== id);
-      persistInstruments();
-      renderAll();
+      await deleteDoc(doc(db, "instruments", id));
     }
 
     function renderInstrumentManager() {
-      $("instrumentAdminList").innerHTML = instruments.map(item => `
+      const list = $("instrumentAdminList");
+      if (!instruments.length) {
+        list.innerHTML = `<div class="empty">No instruments found.</div>`;
+        return;
+      }
+
+      list.innerHTML = instruments.map(item => `
         <div class="user-item">
           <div style="display:flex;gap:12px;align-items:center;">
             ${instrumentVisual(item)}
@@ -1008,16 +1149,8 @@
       `).join("");
     }
 
-    function renderUsers() {
-      $("userList").innerHTML = users.map(u => `
-        <div class="user-item">
-          <div><strong>${u.fullName}</strong><small>@${u.username} · ${u.role}</small></div>
-          <button class="btn btn-amber" onclick="deleteUser('${u.id}')">Remove</button>
-        </div>
-      `).join("");
-    }
-
     function updateStats() {
+      if (!currentUser) return;
       $("totalInstruments").textContent = instruments.length;
       $("registeredUsers").textContent = users.length;
       $("pendingCount").textContent = bookings.filter(b => b.status === "confirmed").length;
@@ -1025,6 +1158,7 @@
     }
 
     function renderAll() {
+      if (!currentUser) return;
       renderInstruments();
       renderInstrumentOptions();
       renderBookings();
@@ -1033,8 +1167,19 @@
       updateStats();
     }
 
-    function init() {
-      persistUsers();
+    function exposeFunctionsForInlineHandlers() {
+      window.showSection = showSection;
+      window.logout = logout;
+      window.selectInstrumentAndBook = selectInstrumentAndBook;
+      window.updateBookingStatus = updateBookingStatus;
+      window.deleteUser = deleteUser;
+      window.resetInstrumentForm = resetInstrumentForm;
+      window.editInstrument = editInstrument;
+      window.deleteInstrument = deleteInstrument;
+    }
+
+    async function init() {
+      exposeFunctionsForInlineHandlers();
       $("loginForm").addEventListener("submit", login);
       $("bookingForm").addEventListener("submit", submitBooking);
       $("createUserForm").addEventListener("submit", createUser);
@@ -1043,6 +1188,12 @@
         $(id).addEventListener("change", updateDurationPreview);
         $(id).addEventListener("input", updateDurationPreview);
       });
+
+      if (!isBootstrapped) {
+        isBootstrapped = true;
+        await seedInitialDataIfNeeded();
+        subscribeToFirestore();
+      }
 
       if (currentUser) openApp();
     }

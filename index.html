@@ -392,6 +392,7 @@
       <div class="nav-links">
         <button class="active" data-tab="dashboard" onclick="showSection('dashboard')">Dashboard</button>
         <button data-tab="instruments" onclick="showSection('instruments')">Instruments</button>
+        <button data-tab="schedule" onclick="showSection('schedule')">Schedule</button>
         <button data-tab="booking" onclick="showSection('booking')">Book</button>
         <button data-tab="mybookings" onclick="showSection('mybookings')">My Bookings</button>
         <button data-tab="admin" id="adminTab" onclick="showSection('admin')">Admin</button>
@@ -444,6 +445,16 @@
         </div>
       </div>
       <div class="grid" id="instrumentGrid"></div>
+    </section>
+
+    <section id="schedule" class="section">
+      <div class="section-title">
+        <div>
+          <h2>Instrument Schedule</h2>
+          <p>Check current and upcoming confirmed reservations before creating a new booking.</p>
+        </div>
+      </div>
+      <div class="card panel table-wrap" id="scheduleView"></div>
     </section>
 
     <section id="booking" class="section">
@@ -930,7 +941,7 @@
       showSection("mybookings");
     }
 
-    function bookingTable(data, adminMode = false) {
+    function bookingTable(data, adminMode = false, allowUserCancel = false) {
       if (!data.length) return `<div class="empty">No booking records found.</div>`;
 
       return `
@@ -943,7 +954,7 @@
               <th>Duration</th>
               <th>Sample / Condition</th>
               <th>Status</th>
-              ${adminMode ? "<th>Action</th>" : ""}
+              ${adminMode || allowUserCancel ? "<th>Action</th>" : ""}
             </tr>
           </thead>
           <tbody>
@@ -955,7 +966,7 @@
                 <td>${Number(b.durationHours).toFixed(1)} h<br>${Number(b.durationDays).toFixed(2)} d</td>
                 <td>${b.sampleMaterial || "Not specified"}<br><span style="color:var(--muted);">${b.condition || "No condition stated"}</span></td>
                 <td><span class="status ${b.status}">${b.status}</span></td>
-                ${adminMode ? `<td><div class="btn-row"><button class="btn btn-red" onclick="updateBookingStatus('${b.id}','cancelled')">Cancel Booking</button></div></td>` : ""}
+                ${adminMode ? `<td><div class="btn-row"><button class="btn btn-red" onclick="updateBookingStatus('${b.id}','cancelled')">Cancel Booking</button></div></td>` : allowUserCancel && b.status !== "cancelled" ? `<td><div class="btn-row"><button class="btn btn-red" onclick="cancelMyBooking('${b.id}')">Cancel My Booking</button></div></td>` : allowUserCancel ? `<td>—</td>` : ""}
               </tr>
             `).join("")}
           </tbody>
@@ -966,8 +977,73 @@
     function renderBookings() {
       if (!currentUser) return;
       const myData = bookings.filter(b => b.userId === currentUser.id);
-      $("myBookingList").innerHTML = bookingTable(myData, false);
-      $("adminBookingList").innerHTML = bookingTable(bookings, true);
+      $("myBookingList").innerHTML = bookingTable(myData, false, true);
+      $("adminBookingList").innerHTML = bookingTable(bookings, true, false);
+    }
+
+    function renderSchedule() {
+      const activeBookings = bookings
+        .filter(b => b.status !== "cancelled")
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+
+      if (!activeBookings.length) {
+        $("scheduleView").innerHTML = `<div class="empty">No confirmed bookings yet. All instruments are currently available.</div>`;
+        return;
+      }
+
+      const rows = instruments.map(instrument => {
+        const related = activeBookings.filter(b => b.instrumentId === instrument.id);
+        if (!related.length) {
+          return `
+            <tr>
+              <td><strong>${instrument.name}</strong><br><span style="color:var(--muted);">${instrument.location}</span></td>
+              <td><span class="status confirmed">Available</span></td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+          `;
+        }
+
+        return related.map((booking, index) => `
+          <tr>
+            <td>${index === 0 ? `<strong>${instrument.name}</strong><br><span style="color:var(--muted);">${instrument.location}</span>` : ""}</td>
+            <td><span class="status confirmed">Booked</span></td>
+            <td>${formatDateTime(booking.startDateTime)}<br>→ ${formatDateTime(booking.endDateTime)}</td>
+            <td>${booking.userName}<br><span style="color:var(--muted);">${booking.sampleMaterial || "No sample stated"}</span></td>
+          </tr>
+        `).join("");
+      }).join("");
+
+      $("scheduleView").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th>Status</th>
+              <th>Booking Time</th>
+              <th>Reserved By / Sample</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    async function cancelMyBooking(id) {
+      const booking = bookings.find(b => b.id === id);
+      if (!booking) return;
+
+      if (booking.userId !== currentUser.id && currentUser.role !== "admin" && currentUser.role !== "staff") {
+        alert("You can only cancel your own booking.");
+        return;
+      }
+
+      await updateDoc(doc(db, "bookings", id), {
+        status: "cancelled",
+        cancelledBy: currentUser.fullName,
+        cancelledAt: serverTimestamp(),
+        cancelledAtText: new Date().toISOString()
+      });
     }
 
     async function updateBookingStatus(id, status) {
@@ -1156,6 +1232,7 @@
       renderInstruments();
       renderInstrumentOptions();
       renderBookings();
+      renderSchedule();
       renderUsers();
       renderInstrumentManager();
       updateStats();
@@ -1166,6 +1243,7 @@
       window.logout = logout;
       window.selectInstrumentAndBook = selectInstrumentAndBook;
       window.updateBookingStatus = updateBookingStatus;
+      window.cancelMyBooking = cancelMyBooking;
       window.deleteUser = deleteUser;
       window.resetInstrumentForm = resetInstrumentForm;
       window.editInstrument = editInstrument;
